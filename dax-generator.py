@@ -10,7 +10,7 @@ from stat import *
 ## Settings
 
 # Maximum tasks in a sub workflow
-max_tasks_per_sub_wf = 25000
+max_tasks_per_sub_wf = 10000
 
 ##############################
 
@@ -28,7 +28,7 @@ rec_conf_files = {}
 lig_pdbqt_files = []
 
 
-def find_receptors(dir):
+def find_receptors(base_dir, dir):
     global rec_pdbqt_files
     global rec_conf_files
     print(" ... looking for receptors in %s" %(dir))
@@ -42,12 +42,12 @@ def find_receptors(dir):
         mode = os.stat(path).st_mode
 
         if S_ISDIR(mode): 
-            find_receptors(path)
+            find_receptors(base_dir, path)
         else:
             f_base, f_ext = os.path.splitext(entry)
             if f_ext == ".pdbqt":
                 rec_pdbqt_files.append(path)
-                rec_conf_files[entry] = dir + "/conf" + f_base + ".txt"
+                rec_conf_files[generate_lfn(base_dir, path)] = dir + "/conf" + f_base + ".txt"
 
 
 def find_ligands(dir):
@@ -68,6 +68,17 @@ def find_ligands(dir):
             f_base, f_ext = os.path.splitext(entry)
             if f_ext == ".pdbqt":
                 lig_pdbqt_files.append(path)
+
+
+def generate_lfn(base_path, file_path):
+    if not file_path.startswith(base_path):
+        print("Error: %s and %s are not related" %(base_path, file_path))
+        sys.exit(1)
+    lfn = file_path.replace(base_path, "")
+    lfn = lfn.replace("/", "_")
+    if lfn[0] == "_":
+        lfn = lfn[1:]
+    return lfn
 
 
 def splitlist(lst, slicelen):
@@ -118,7 +129,7 @@ def add_subwf(dax, id):
 
 
 # build a list of the receptors and ligands we want to process
-find_receptors(receptor_dir)
+find_receptors(receptor_dir, receptor_dir)
 find_ligands(ligand_dir)
 
 # top level workflow
@@ -137,14 +148,14 @@ subwf_task_count = 0
 work_file = open("work-%06d.txt" %(1), 'w')
 for rec_file in rec_pdbqt_files:
  
-    rec_name = os.path.basename(rec_file)
+    rec_name = generate_lfn(receptor_dir, rec_file)
 
     conf_file = rec_conf_files[rec_name]
-    conf_name = os.path.basename(conf_file)
+    conf_name = generate_lfn(receptor_dir, conf_file)
 
     for lig_pdbqt_file in lig_pdbqt_files:
 
-        lig_name = os.path.basename(lig_pdbqt_file)
+        lig_name = generate_lfn(ligand_dir, lig_pdbqt_file)
     
         if subwf_task_count > max_tasks_per_sub_wf:
             work_file.close()
