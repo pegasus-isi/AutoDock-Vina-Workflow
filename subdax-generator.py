@@ -62,7 +62,7 @@ for line in work_file:
 
     # Add job to dax
     job = Job(name="vina_wrapper.sh")
-    job.addArguments(conf_name, lig_name, out_file, log_file)
+    job.addArguments(conf_name, rec_name, lig_name, out_file, log_file)
     job.uses(conf_saved[conf_name], link=Link.INPUT)
     job.uses(receptors_pdbqt_saved[rec_name], link=Link.INPUT)
     job.uses(ligands_pdbqt_saved[lig_name], link=Link.INPUT)
